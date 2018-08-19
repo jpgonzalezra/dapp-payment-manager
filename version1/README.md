@@ -1,6 +1,4 @@
 # dapp-payment-manager
-#
-#
 
 > Suelos de empleados
 Los contratos escritos cumplen la función de pagar sueldos automáticamente en ETH.
