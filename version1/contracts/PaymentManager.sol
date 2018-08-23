@@ -1,7 +1,8 @@
 pragma solidity ^0.4.24;
 
-import 'openzeppelin-solidity/contracts/math/SafeMath.sol';
-import 'openzeppelin-solidity/contracts/ownership/Ownable.sol';
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./DateTime.sol";
 
 contract PaymentManager is Ownable {
 
@@ -10,7 +11,7 @@ contract PaymentManager is Ownable {
     struct Employee {
         uint256 index;
         uint256 amount;
-        uint256 nextPayDate;
+        uint8 nextPayDate;
     }
 
     address[] public employeesIndex;
@@ -27,7 +28,6 @@ contract PaymentManager is Ownable {
     */
     function () external payable {}
 
-    // ["0x583031d1113ad414f02576bd6afabfb302140225","0x4b0897b0513fdc7c541b6d9d7e929c4e5364d2db","0x14723a09acff6d2a60dcdf7aa4aff308fddc160c"], ["3000000000000000000","4000000000000000000","2000000000000000000"]
 
     /**
     * @dev Constructor
@@ -51,7 +51,10 @@ contract PaymentManager is Ownable {
         require(payees[msg.sender]);
 
         Employee storage employee = employees[msg.sender];
-        require(now > employee.nextPayDate);
+
+        uint8 currentMonth;
+        (, currentMonth) = getCurrentTime();
+        require(currentMonth == employee.nextPayDate);
 
         uint256 payment = employee.amount;
         require(payment > 0);
@@ -67,13 +70,12 @@ contract PaymentManager is Ownable {
     * @param _address The address of the employee to add.
     * @param _amount The number of salary owned by the employee.
     */
-    //"0xdd870fa1b7c4700f2bd7f44238821c26f7392148","1000000000000000000"
     function addEmployee(address _address, uint256 _amount) public onlyOwner {
 
         require(_address != address(0));
         require(_amount > 0);
 
-        uint256 nextPayDate = getNextPayDate();
+        uint8 nextPayDate = getNextPayDate();
         employeesIndex.push(_address);
         uint256 index = employeesIndex.length.sub(1);
         employees[_address] = Employee(index, _amount, nextPayDate);
@@ -102,6 +104,8 @@ contract PaymentManager is Ownable {
         employeesIndex[rowToDelete] = keyToMove;
         employees[keyToMove].index = rowToDelete;
 
+        employeesIndex.length = employeesIndex.length.sub(1);
+
         emit DeleteEmployee(_address);
 
     }
@@ -111,7 +115,6 @@ contract PaymentManager is Ownable {
     * @param _address The address of the employee to update.
     * @param _newAmount The new number of salary owned by the employee.
     */
-    //"0xdd870fa1b7c4700f2bd7f44238821c26f7392148","2000000000000000000"
     function updateSalary(address _address, uint256 _newAmount) public onlyOwner {
 
         require(_address != address(0));
@@ -145,9 +148,37 @@ contract PaymentManager is Ownable {
     /**
     * @dev Calculate the next payment.
     */
-    function getNextPayDate() private view returns (uint256 time) {
-        uint256 nextPayDate = now.add(30 days);
-        return nextPayDate;
+    function getNextPayDate() private view returns (uint8 time) {
+
+        uint16 currentYear;
+        uint8 currentMonth;
+        (currentYear, currentMonth) = getCurrentTime();
+
+
+        uint8 nextMonth;
+        (, nextMonth) = DateTime.getNextMonth(currentYear, currentMonth);
+
+        return nextMonth;
+    }
+
+    /**
+    * @dev Returns the current year and month.
+    * @return year uint16 The current year.
+    * @return month uint8 The current month.
+    */
+    function getCurrentTime() private view returns (uint16 year, uint8 month) {
+        return getTime(now);
+    }
+
+    /**
+    * @dev Returns the current year and month.
+    * @param _time uint256 The timestamp of the time to query.
+    * @return year uint16 The current year.
+    * @return month uint8 The current month.
+    */
+    function getTime(uint256 _time) private pure returns (uint16 year, uint8 month) {
+        year = DateTime.getYear(_time);
+        month = DateTime.getMonth(_time);
     }
 
 }
